@@ -3,6 +3,7 @@ package com.share.common.elasticsearch.rest;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -59,12 +60,11 @@ public class ElasticsearchRestFactory extends AbstractElasticsearchFactory{
 		super(clusterName, servers, username, password, port);
 	}
 
-//	/**
-//	 * @description Elasticsearch服务配置
-//	 * @author yi.zhang
-//	 * @time 2017年4月19日 上午10:38:42
-//	 * @throws Exception
-//	 */
+	/**
+	 * 描述: Elasticsearch服务初始化
+	 * 时间: 2017年11月14日 上午10:55:02
+	 * @author yi.zhang
+	 */
 	public void init(){
 		try {
 			List<HttpHost> list = new ArrayList<HttpHost>();
@@ -219,29 +219,29 @@ public class ElasticsearchRestFactory extends AbstractElasticsearchFactory{
 	}
 	
 	@Override
-	public String insert(String index, String type, String json) {
+	public String insert(String index, String type, Object json) {
 		String uri = "/"+index+"/"+type;
-		JSONObject body = JSON.parseObject(json);
+		JSONObject body = JSON.parseObject(JSON.toJSONString(json));
 		String result = base(uri, HttpUtil.METHOD_POST,  body.toJSONString());
 		return result;
 	}
 
 	@Override
-	public String update(String index, String type, String id, String json) {
+	public String update(String index, String type, String id, Object json) {
 		String uri = "/"+index+"/"+type+"/"+id;
 		String result = base(uri, HttpUtil.METHOD_GET,null);
 		JSONObject target = JSON.parseObject(result);
 		if(target.getBooleanValue("found")){
-			JSONObject body = JSON.parseObject(json);
+			JSONObject body = JSON.parseObject(JSON.toJSONString(json));
 			result = base(uri, HttpUtil.METHOD_PUT, body.toJSONString());
 		}
 		return result;
 	}
 
 	@Override
-	public String upsert(String index, String type, String id, String json) {
+	public String upsert(String index, String type, String id, Object json) {
 		String uri = "/"+index+"/"+type+"/"+id;
-		JSONObject body = JSON.parseObject(json);
+		JSONObject body = JSON.parseObject(JSON.toJSONString(json));
 		String result = base(uri, HttpUtil.METHOD_PUT, body.toJSONString());
 		return result;
 	}
@@ -252,11 +252,11 @@ public class ElasticsearchRestFactory extends AbstractElasticsearchFactory{
 		return result;
 	}
 	@Override
-	public String bulkUpsert(String index, String type, List<String> jsons) {
+	public String bulkUpsert(String index, String type, List<Object> jsons) {
 		String uri = "/_bulk";
 		String body = "";
-		for (String json : jsons) {
-			JSONObject obj = JSON.parseObject(json);
+		for (Object json : jsons) {
+			JSONObject obj = JSON.parseObject(JSON.toJSONString(json));
 			String id = null;
 			if(obj.containsKey("id")||obj.containsKey("_id")){
 				if(obj.containsKey("_id")){
@@ -327,7 +327,7 @@ public class ElasticsearchRestFactory extends AbstractElasticsearchFactory{
 	}
 
 	@Override
-	public String selectMatchAll(String indexs, String types,Map<String,String> must,Map<String,String> should,Map<String,String> must_not) {
+	public String selectMatchAll(String indexs, String types,Map<String, Object> must, Map<String, Object> should, Map<String, Object> must_not, Map<String, List<Object>> ranges) {
 		if(StringUtil.isEmpty(indexs))indexs="_all";
 		String uri = "/"+indexs+(StringUtil.isEmpty(types)?"":"/"+types)+"/_search?pretty";
 		List<JSONObject> must_matchs = new ArrayList<JSONObject>();
@@ -338,16 +338,20 @@ public class ElasticsearchRestFactory extends AbstractElasticsearchFactory{
 				if(field.matches(regex)){
 					continue;
 				}
-				String value = must.get(field);
+				Object text = must.get(field);
+				String value = text instanceof String ?text.toString():JSON.toJSONString(text);
 				if(!StringUtil.isEmpty(field)&&!StringUtil.isEmpty(value)){
 					if(value.startsWith("[")&&value.endsWith("]")){
+						List<JSONObject> child_matchs = new ArrayList<JSONObject>();
 						List<String> values = JSON.parseArray(value, String.class);
 						for (String _value : values) {
 							if(!_value.matches(regex)){
 								String match = "{match:{"+field+":'"+_value+"'}}";
-								should_matchs.add(JSON.parseObject(match));
+								child_matchs.add(JSON.parseObject(match));
 							}
 						}
+						String match = "{bool:{must:"+JSON.toJSONString(child_matchs)+"}}";
+						must_matchs.add(JSON.parseObject(match));
 					}else{
 						if(!value.matches(regex)){
 							String match = "{match:{"+field+":'"+value+"'}}";
@@ -362,16 +366,20 @@ public class ElasticsearchRestFactory extends AbstractElasticsearchFactory{
 				if(field.matches(regex)){
 					continue;
 				}
-				String value = should.get(field);
+				Object text = must.get(field);
+				String value = text instanceof String ?text.toString():JSON.toJSONString(text);
 				if(!StringUtil.isEmpty(field)&&!StringUtil.isEmpty(value)){
 					if(value.startsWith("[")&&value.endsWith("]")){
+						List<JSONObject> child_matchs = new ArrayList<JSONObject>();
 						List<String> values = JSON.parseArray(value, String.class);
 						for (String _value : values) {
 							if(!_value.matches(regex)){
 								String match = "{match:{"+field+":'"+_value+"'}}";
-								should_matchs.add(JSON.parseObject(match));
+								child_matchs.add(JSON.parseObject(match));
 							}
 						}
+						String match = "{bool:{should:"+JSON.toJSONString(child_matchs)+"}}";
+						must_matchs.add(JSON.parseObject(match));
 					}else{
 						if(!value.matches(regex)){
 							String match = "{match:{"+field+":'"+value+"'}}";
@@ -386,16 +394,20 @@ public class ElasticsearchRestFactory extends AbstractElasticsearchFactory{
 				if(field.matches(regex)){
 					continue;
 				}
-				String value = must_not.get(field);
+				Object text = must.get(field);
+				String value = text instanceof String ?text.toString():JSON.toJSONString(text);
 				if(!StringUtil.isEmpty(field)&&!StringUtil.isEmpty(value)){
 					if(value.startsWith("[")&&value.endsWith("]")){
+						List<JSONObject> child_matchs = new ArrayList<JSONObject>();
 						List<String> values = JSON.parseArray(value, String.class);
 						for (String _value : values) {
 							if(!_value.matches(regex)){
 								String match = "{match:{"+field+":'"+_value+"'}}";
-								must_not_matchs.add(JSON.parseObject(match));
+								child_matchs.add(JSON.parseObject(match));
 							}
 						}
+						String match = "{bool:{must_not:"+JSON.toJSONString(child_matchs)+"}}";
+						must_not_matchs.add(JSON.parseObject(match));
 					}else{
 						if(!value.matches(regex)){
 							String match = "{match:{"+field+":'"+value+"'}}";
@@ -405,7 +417,156 @@ public class ElasticsearchRestFactory extends AbstractElasticsearchFactory{
 				}
 			}
 		}
+		if(ranges!=null&&ranges.size()>0){
+			for (String key : ranges.keySet()) {
+				if(key.matches(regex)){
+					continue;
+				}
+				List<Object> between = ranges.get(key);
+				if(between!=null&&!between.isEmpty()){
+					Object start = between.get(0);
+					Object end = between.size()>1?between.get(1):null;
+					if(start!=null&&end!=null){
+						Long starttime = start instanceof Date?((Date)start).getTime():Long.valueOf(start.toString());
+						Long endtime = end instanceof Date?((Date)end).getTime():Long.valueOf(end.toString());
+						if(starttime>endtime){
+							Object temp = start;
+							start = end;
+							end = temp;
+						}
+					}
+					String range = "{range:{"+key+":{gte:"+start+",lt:"+end+"}}}";
+					must_matchs.add(JSON.parseObject(range));
+				}
+			};
+		}
 		String query = "{query:{bool:{must:"+JSON.toJSONString(must_matchs)+",must_not:"+JSON.toJSONString(must_not_matchs)+",should:"+JSON.toJSONString(should_matchs)+"}}}";
+		String body = JSON.parseObject(query).toJSONString();
+		String result = base(uri, HttpUtil.METHOD_POST, body);
+		return result;
+	}
+	
+	public String selectMatchAll(String indexs, String types, Map<String, Object> must, Map<String, Object> should, Map<String, Object> must_not, Map<String, List<Object>> ranges, String order, boolean isAsc, int pageNo,int pageSize) {
+		if(StringUtil.isEmpty(indexs))indexs="_all";
+		pageNo=pageNo<1?1:pageNo;
+		pageSize=pageSize<1?10:pageSize;
+		String uri = "/"+indexs+(StringUtil.isEmpty(types)?"":"/"+types)+"/_search?pretty&size="+pageSize+"&from"+(pageNo-1)*pageSize;
+		List<JSONObject> must_matchs = new ArrayList<JSONObject>();
+		List<JSONObject> should_matchs = new ArrayList<JSONObject>();
+		List<JSONObject> must_not_matchs = new ArrayList<JSONObject>();
+		if(must!=null&&must.size()>0){
+			for (String field : must.keySet()) {
+				if(field.matches(regex)){
+					continue;
+				}
+				Object text = must.get(field);
+				String value = text instanceof String ?text.toString():JSON.toJSONString(text);
+				if(!StringUtil.isEmpty(field)&&!StringUtil.isEmpty(value)){
+					if(value.startsWith("[")&&value.endsWith("]")){
+						List<JSONObject> child_matchs = new ArrayList<JSONObject>();
+						List<String> values = JSON.parseArray(value, String.class);
+						for (String _value : values) {
+							if(!_value.matches(regex)){
+								String match = "{match:{"+field+":'"+_value+"'}}";
+								child_matchs.add(JSON.parseObject(match));
+							}
+						}
+						String match = "{bool:{must:"+JSON.toJSONString(child_matchs)+"}}";
+						must_matchs.add(JSON.parseObject(match));
+					}else{
+						if(!value.matches(regex)){
+							String match = "{match:{"+field+":'"+value+"'}}";
+							must_matchs.add(JSON.parseObject(match));
+						}
+					}
+				}
+			}
+		}
+		if(should!=null&&should.size()>0){
+			for (String field : should.keySet()) {
+				if(field.matches(regex)){
+					continue;
+				}
+				Object text = must.get(field);
+				String value = text instanceof String ?text.toString():JSON.toJSONString(text);
+				if(!StringUtil.isEmpty(field)&&!StringUtil.isEmpty(value)){
+					if(value.startsWith("[")&&value.endsWith("]")){
+						List<JSONObject> child_matchs = new ArrayList<JSONObject>();
+						List<String> values = JSON.parseArray(value, String.class);
+						for (String _value : values) {
+							if(!_value.matches(regex)){
+								String match = "{match:{"+field+":'"+_value+"'}}";
+								child_matchs.add(JSON.parseObject(match));
+							}
+						}
+						String match = "{bool:{should:"+JSON.toJSONString(child_matchs)+"}}";
+						must_matchs.add(JSON.parseObject(match));
+					}else{
+						if(!value.matches(regex)){
+							String match = "{match:{"+field+":'"+value+"'}}";
+							should_matchs.add(JSON.parseObject(match));
+						}
+					}
+				}
+			}
+		}
+		if(must_not!=null&&must_not.size()>0){
+			for (String field : must_not.keySet()) {
+				if(field.matches(regex)){
+					continue;
+				}
+				Object text = must.get(field);
+				String value = text instanceof String ?text.toString():JSON.toJSONString(text);
+				if(!StringUtil.isEmpty(field)&&!StringUtil.isEmpty(value)){
+					if(value.startsWith("[")&&value.endsWith("]")){
+						List<JSONObject> child_matchs = new ArrayList<JSONObject>();
+						List<String> values = JSON.parseArray(value, String.class);
+						for (String _value : values) {
+							if(!_value.matches(regex)){
+								String match = "{match:{"+field+":'"+_value+"'}}";
+								child_matchs.add(JSON.parseObject(match));
+							}
+						}
+						String match = "{bool:{must_not:"+JSON.toJSONString(child_matchs)+"}}";
+						must_not_matchs.add(JSON.parseObject(match));
+					}else{
+						if(!value.matches(regex)){
+							String match = "{match:{"+field+":'"+value+"'}}";
+							must_not_matchs.add(JSON.parseObject(match));
+						}
+					}
+				}
+			}
+		}
+		if(ranges!=null&&ranges.size()>0){
+			for (String key : ranges.keySet()) {
+				if(key.matches(regex)){
+					continue;
+				}
+				List<Object> between = ranges.get(key);
+				if(between!=null&&!between.isEmpty()){
+					Object start = between.get(0);
+					Object end = between.size()>1?between.get(1):null;
+					if(start!=null&&end!=null){
+						Long starttime = start instanceof Date?((Date)start).getTime():Long.valueOf(start.toString());
+						Long endtime = end instanceof Date?((Date)end).getTime():Long.valueOf(end.toString());
+						if(starttime>endtime){
+							Object temp = start;
+							start = end;
+							end = temp;
+						}
+					}
+					String range = "{range:{"+key+":{gte:"+start+",lt:"+end+"}}}";
+					must_matchs.add(JSON.parseObject(range));
+				}
+			};
+		}
+		List<JSONObject> sorts = new ArrayList<JSONObject>();
+		sorts.add(JSON.parseObject("{_score:{order:'desc'}}"));
+		if(!StringUtil.isEmpty(order)){
+			sorts.add(JSON.parseObject("{"+order+":{order:'"+(isAsc?"asc":"desc")+"'}}"));
+		}
+		String query = "{query:{bool:{must:"+JSON.toJSONString(must_matchs)+",must_not:"+JSON.toJSONString(must_not_matchs)+",should:"+JSON.toJSONString(should_matchs)+"}},sort:"+JSON.toJSONString(sorts)+"}";
 		String body = JSON.parseObject(query).toJSONString();
 		String result = base(uri, HttpUtil.METHOD_POST, body);
 		return result;

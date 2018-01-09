@@ -1,6 +1,7 @@
 package com.share.common.elasticsearch.transport;
 
 import java.net.InetAddress;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -19,6 +20,7 @@ import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
+import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.SearchType;
 import org.elasticsearch.action.update.UpdateRequest;
@@ -30,8 +32,11 @@ import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.index.query.RangeQueryBuilder;
 import org.elasticsearch.search.aggregations.AggregationBuilders;
 import org.elasticsearch.search.fetch.subphase.highlight.HighlightBuilder;
+import org.elasticsearch.search.sort.SortBuilders;
+import org.elasticsearch.search.sort.SortOrder;
 import org.elasticsearch.transport.client.PreBuiltTransportClient;
 import org.elasticsearch.xpack.client.PreBuiltXPackTransportClient;
 
@@ -68,12 +73,11 @@ public class ElasticsearchTransportFactory extends AbstractElasticsearchFactory{
 	public ElasticsearchTransportFactory(String clusterName, String servers, String username, String password,int port) {
 		super(clusterName, servers, username, password, port);
 	}
-//	/**
-//	 * @description Elasticsearch服务配置
-//	 * @author yi.zhang
-//	 * @time 2017年4月19日 上午10:38:42
-//	 * @throws Exception
-//	 */
+	/**
+	 * 描述: Elasticsearch服务初始化
+	 * 时间: 2017年11月14日 上午10:55:02
+	 * @author yi.zhang
+	 */
 	public void init(){
 		try {
 			Builder builder = Settings.builder();
@@ -143,12 +147,12 @@ public class ElasticsearchTransportFactory extends AbstractElasticsearchFactory{
 		return null;
 	}
 	
-	public String insert(String index,String type,String json){
+	public String insert(String index,String type,Object json){
 		try {
 			if(client==null){
 				init();
 			}
-			IndexResponse response = client.prepareIndex(index, type).setSource(json,XContentType.JSON).execute().actionGet();
+			IndexResponse response = client.prepareIndex(index, type).setSource(JSON.parseObject(JSON.toJSONString(json)),XContentType.JSON).execute().actionGet();
 			if(response.getResult().equals(Result.CREATED)){
 				System.out.println(JSON.toJSONString(response));
 			}
@@ -159,12 +163,12 @@ public class ElasticsearchTransportFactory extends AbstractElasticsearchFactory{
 		}
 		return null;
 	}
-	public String update(String index,String type,String id,String json){
+	public String update(String index,String type,String id,Object json){
 		try {
 			if(client==null){
 				init();
 			}
-			UpdateResponse result = client.prepareUpdate(index, type, id).setDoc(json,XContentType.JSON).execute().actionGet();
+			UpdateResponse result = client.prepareUpdate(index, type, id).setDoc(JSON.parseObject(JSON.toJSONString(json)),XContentType.JSON).execute().actionGet();
 			System.out.println(JSON.toJSONString(result));
 			return result.toString();
 		} catch (Exception e) {
@@ -173,13 +177,13 @@ public class ElasticsearchTransportFactory extends AbstractElasticsearchFactory{
 		}
 		return null;
 	}
-	public String upsert(String index,String type,String id,String json){
+	public String upsert(String index,String type,String id,Object json){
 		try {
 			if(client==null){
 				init();
 			}
-			IndexRequest indexRequest = new IndexRequest(index, type, id).source(json,XContentType.JSON);
-			UpdateRequest updateRequest = new UpdateRequest(index, type, id).doc(json,XContentType.JSON).upsert(indexRequest);              
+			IndexRequest indexRequest = new IndexRequest(index, type, id).source(JSON.parseObject(JSON.toJSONString(json)),XContentType.JSON);
+			UpdateRequest updateRequest = new UpdateRequest(index, type, id).doc(JSON.parseObject(JSON.toJSONString(json)),XContentType.JSON).upsert(indexRequest);              
 			UpdateResponse result = client.update(updateRequest).get();
 			return result.toString();
 		}catch (Exception e) {
@@ -202,14 +206,14 @@ public class ElasticsearchTransportFactory extends AbstractElasticsearchFactory{
 		}
 		return null;
 	}
-	public String bulkUpsert(String index,String type,List<String> jsons){
+	public String bulkUpsert(String index,String type,List<Object> jsons){
 		try {
 			if(client==null){
 				init();
 			}
 			BulkRequestBuilder bulkRequest = client.prepareBulk();
-			for (String json : jsons) {
-				JSONObject obj = JSON.parseObject(json);
+			for (Object json : jsons) {
+				JSONObject obj = JSON.parseObject(JSON.toJSONString(json));
 				String id = UUIDs.base64UUID();
 				if(obj.containsKey("id")){
 					id = obj.getString("id");
@@ -268,12 +272,11 @@ public class ElasticsearchTransportFactory extends AbstractElasticsearchFactory{
 			if(client==null){
 				init();
 			}
-			SearchResponse response = client.prepareSearch(indexs.split(","))
-			        .setTypes(types.split(","))
-			        .setSearchType(SearchType.DFS_QUERY_THEN_FETCH)
-			        .setQuery(QueryBuilders.queryStringQuery(condition))                 // Query
-			        .setFrom(0).setSize(60).setExplain(true)
-			        .get();
+			SearchRequestBuilder request = client.prepareSearch(indexs.split(",")).setTypes(types.split(","));
+			request.setSearchType(SearchType.DFS_QUERY_THEN_FETCH);
+			request.setQuery(QueryBuilders.queryStringQuery(condition));
+			request.setExplain(false);
+			SearchResponse response = request.get();
 			return response.toString();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
@@ -287,14 +290,13 @@ public class ElasticsearchTransportFactory extends AbstractElasticsearchFactory{
 			if(client==null){
 				init();
 			}
-			SearchResponse response = client.prepareSearch(indexs.split(","))
-					.setTypes(types.split(","))
-					.setSearchType(SearchType.DFS_QUERY_THEN_FETCH)
-					.setQuery(QueryBuilders.matchQuery(field, value))
-					.highlighter(new HighlightBuilder().field(field))
-					.addAggregation(AggregationBuilders.terms("data").field(field+".keyword"))
-					.setFrom(0).setSize(60).setExplain(true)
-					.get();
+			SearchRequestBuilder request = client.prepareSearch(indexs.split(",")).setTypes(types.split(","));
+			request.setSearchType(SearchType.DFS_QUERY_THEN_FETCH);
+			request.setQuery(QueryBuilders.matchQuery(field, value));
+			request.highlighter(new HighlightBuilder().field(field));
+			request.addAggregation(AggregationBuilders.terms("data").field(field+".keyword"));
+			request.setExplain(false);
+			SearchResponse response = request.get();
 			return response.toString();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
@@ -302,7 +304,7 @@ public class ElasticsearchTransportFactory extends AbstractElasticsearchFactory{
 		}
 		return null;
 	}
-	public String selectMatchAll(String indexs,String types,Map<String,String> must,Map<String,String> should,Map<String,String> must_not){
+	public String selectMatchAll(String indexs,String types,Map<String,Object> must,Map<String,Object> should,Map<String,Object> must_not,Map<String,List<Object>> ranges){
 		try {
 			if(client==null){
 				init();
@@ -314,15 +316,18 @@ public class ElasticsearchTransportFactory extends AbstractElasticsearchFactory{
 					if(field.matches(regex)){
 						continue;
 					}
-					String value = must.get(field);
+					Object text = must.get(field);
+					String value = text instanceof String ?text.toString():JSON.toJSONString(text);
 					if(!StringUtil.isEmpty(field)&&!StringUtil.isEmpty(value)){
 						if(value.startsWith("[")&&value.endsWith("]")){
+							BoolQueryBuilder child = QueryBuilders.boolQuery();
 							List<String> values = JSON.parseArray(value, String.class);
 							for (String _value : values) {
 								if(!_value.matches(regex)){
-									boolquery.should(QueryBuilders.matchQuery(field, value));
+									child.should(QueryBuilders.matchQuery(field, value));
 								}
 							}
+							boolquery.must(child);
 						}else{
 							if(!value.matches(regex)){
 								boolquery.must(QueryBuilders.matchQuery(field, value));
@@ -337,15 +342,18 @@ public class ElasticsearchTransportFactory extends AbstractElasticsearchFactory{
 					if(field.matches(regex)){
 						continue;
 					}
-					String value = should.get(field);
+					Object text = must.get(field);
+					String value = text instanceof String ?text.toString():JSON.toJSONString(text);
 					if(!StringUtil.isEmpty(field)&&!StringUtil.isEmpty(value)){
 						if(value.startsWith("[")&&value.endsWith("]")){
+							BoolQueryBuilder child = QueryBuilders.boolQuery();
 							List<String> values = JSON.parseArray(value, String.class);
 							for (String _value : values) {
 								if(!_value.matches(regex)){
-									boolquery.should(QueryBuilders.matchQuery(field, value));
+									child.should(QueryBuilders.matchQuery(field, value));
 								}
 							}
+							boolquery.should(child);
 						}else{
 							if(!value.matches(regex)){
 								boolquery.should(QueryBuilders.matchQuery(field, value));
@@ -360,15 +368,18 @@ public class ElasticsearchTransportFactory extends AbstractElasticsearchFactory{
 					if(field.matches(regex)){
 						continue;
 					}
-					String value = must_not.get(field);
+					Object text = must.get(field);
+					String value = text instanceof String ?text.toString():JSON.toJSONString(text);
 					if(!StringUtil.isEmpty(field)&&!StringUtil.isEmpty(value)){
 						if(value.startsWith("[")&&value.endsWith("]")){
+							BoolQueryBuilder child = QueryBuilders.boolQuery();
 							List<String> values = JSON.parseArray(value, String.class);
 							for (String _value : values) {
 								if(!_value.matches(regex)){
-									boolquery.mustNot(QueryBuilders.matchQuery(field, value));
+									child.should(QueryBuilders.matchQuery(field, value));
 								}
 							}
+							boolquery.mustNot(child);
 						}else{
 							if(!value.matches(regex)){
 								boolquery.mustNot(QueryBuilders.matchQuery(field, value));
@@ -378,18 +389,177 @@ public class ElasticsearchTransportFactory extends AbstractElasticsearchFactory{
 					highlight.field(field);
 				}
 			}
-			SearchResponse response = client.prepareSearch(indexs.split(","))
-					.setTypes(types.split(","))
-					.setSearchType(SearchType.DFS_QUERY_THEN_FETCH)
-					.setQuery(boolquery)
-					.highlighter(highlight)
-					.setExplain(true)
-					.get();
+			if(ranges!=null&&ranges.size()>0){
+				for (String key : ranges.keySet()) {
+					if(key.matches(regex)){
+						continue;
+					}
+					List<Object> between = ranges.get(key);
+					if(between!=null&&!between.isEmpty()){
+						Object start = between.get(0);
+						Object end = between.size()>1?between.get(1):null;
+						if(start!=null&&end!=null){
+							Long starttime = start instanceof Date?((Date)start).getTime():Long.valueOf(start.toString());
+							Long endtime = end instanceof Date?((Date)end).getTime():Long.valueOf(end.toString());
+							if(starttime>endtime){
+								Object temp = start;
+								start = end;
+								end = temp;
+							}
+						}
+						RangeQueryBuilder range = QueryBuilders.rangeQuery(key);
+						if(start!=null){
+							range.gte(start);
+						}
+						if(start!=null){
+							range.lt(start);
+						}
+						boolquery.must(range);
+					}
+				}
+			}
+			SearchRequestBuilder request = client.prepareSearch(indexs.split(",")).setTypes(types.split(","));
+			request.setSearchType(SearchType.DFS_QUERY_THEN_FETCH);
+			request.setQuery(boolquery);
+			request.highlighter(highlight);
+			request.setExplain(false);
+			SearchResponse response = request.get();
 			return response.toString();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		return null;
+	}
+	@Override
+	public String selectMatchAll(String indexs, String types, Map<String, Object> must, Map<String, Object> should, Map<String, Object> must_not, Map<String, List<Object>> ranges, String order, boolean isAsc, int pageNo,int pageSize) {
+		if(client==null){
+			init();
+		}
+		pageNo=pageNo<1?1:pageNo;
+		pageSize=pageSize<1?10:pageSize;
+		BoolQueryBuilder boolquery = QueryBuilders.boolQuery();
+		HighlightBuilder highlight = new HighlightBuilder();
+		if(must!=null&&must.size()>0){
+			for (String field : must.keySet()) {
+				if(field.matches(regex)){
+					continue;
+				}
+				Object text = must.get(field);
+				String value = text instanceof String ?text.toString():JSON.toJSONString(text);
+				if(!StringUtil.isEmpty(field)&&!StringUtil.isEmpty(value)){
+					if(value.startsWith("[")&&value.endsWith("]")){
+						BoolQueryBuilder child = QueryBuilders.boolQuery();
+						List<String> values = JSON.parseArray(value, String.class);
+						for (String _value : values) {
+							if(!_value.matches(regex)){
+								child.should(QueryBuilders.matchQuery(field, value));
+							}
+						}
+						boolquery.must(child);
+					}else{
+						if(!value.matches(regex)){
+							boolquery.must(QueryBuilders.matchQuery(field, value));
+						}
+					}
+				}
+				highlight.field(field);
+			}
+		}
+		if(should!=null&&should.size()>0){
+			for (String field : should.keySet()) {
+				if(field.matches(regex)){
+					continue;
+				}
+				Object text = must.get(field);
+				String value = text instanceof String ?text.toString():JSON.toJSONString(text);
+				if(!StringUtil.isEmpty(field)&&!StringUtil.isEmpty(value)){
+					if(value.startsWith("[")&&value.endsWith("]")){
+						BoolQueryBuilder child = QueryBuilders.boolQuery();
+						List<String> values = JSON.parseArray(value, String.class);
+						for (String _value : values) {
+							if(!_value.matches(regex)){
+								child.should(QueryBuilders.matchQuery(field, value));
+							}
+						}
+						boolquery.should(child);
+					}else{
+						if(!value.matches(regex)){
+							boolquery.should(QueryBuilders.matchQuery(field, value));
+						}
+					}
+				}
+				highlight.field(field);
+			}
+		}
+		if(must_not!=null&&must_not.size()>0){
+			for (String field : must_not.keySet()) {
+				if(field.matches(regex)){
+					continue;
+				}
+				Object text = must.get(field);
+				String value = text instanceof String ?text.toString():JSON.toJSONString(text);
+				if(!StringUtil.isEmpty(field)&&!StringUtil.isEmpty(value)){
+					if(value.startsWith("[")&&value.endsWith("]")){
+						BoolQueryBuilder child = QueryBuilders.boolQuery();
+						List<String> values = JSON.parseArray(value, String.class);
+						for (String _value : values) {
+							if(!_value.matches(regex)){
+								child.should(QueryBuilders.matchQuery(field, value));
+							}
+						}
+						boolquery.mustNot(child);
+					}else{
+						if(!value.matches(regex)){
+							boolquery.mustNot(QueryBuilders.matchQuery(field, value));
+						}
+					}
+				}
+				highlight.field(field);
+			}
+		}
+		if(ranges!=null&&ranges.size()>0){
+			for (String key : ranges.keySet()) {
+				if(key.matches(regex)){
+					continue;
+				}
+				List<Object> between = ranges.get(key);
+				if(between!=null&&!between.isEmpty()){
+					Object start = between.get(0);
+					Object end = between.size()>1?between.get(1):null;
+					if(start!=null&&end!=null){
+						Long starttime = start instanceof Date?((Date)start).getTime():Long.valueOf(start.toString());
+						Long endtime = end instanceof Date?((Date)end).getTime():Long.valueOf(end.toString());
+						if(starttime>endtime){
+							Object temp = start;
+							start = end;
+							end = temp;
+						}
+					}
+					RangeQueryBuilder range = QueryBuilders.rangeQuery(key);
+					if(start!=null){
+						range.gte(start);
+					}
+					if(start!=null){
+						range.lt(start);
+					}
+					boolquery.must(range);
+				}
+			};
+		}
+		
+		SearchRequestBuilder request = client.prepareSearch(indexs.split(",")).setTypes(types.split(","));
+		request.setSearchType(SearchType.DFS_QUERY_THEN_FETCH);
+		request.setQuery(boolquery);
+		request.highlighter(highlight);
+		request.addSort(SortBuilders.scoreSort());
+		if(!StringUtil.isEmpty(order)){
+			request.addSort(SortBuilders.fieldSort(order).order(isAsc?SortOrder.ASC:SortOrder.DESC));
+		}
+		request.setFrom((pageNo-1)*pageSize);
+		request.setSize(pageSize);
+		request.setExplain(false);
+		SearchResponse response = request.get();
+		return response.toString();
 	}
 }

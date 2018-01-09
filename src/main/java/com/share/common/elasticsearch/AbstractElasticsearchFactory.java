@@ -17,7 +17,15 @@ public abstract class AbstractElasticsearchFactory implements ElasticsearchFacto
 	protected int port;
 	
 	public abstract int defaultPort();
-	
+	/**
+	 * 描述: 字段映射
+	 * 时间: 2018年1月9日 上午11:36:54
+	 * @author yi.zhang
+	 * @param index	索引
+	 * @param type	类型
+	 * @param clazz	实例
+	 * @return
+	 */
 	public abstract String mapping(String index,String type,@SuppressWarnings("rawtypes") Class clazz);
 	
 	public AbstractElasticsearchFactory() {
