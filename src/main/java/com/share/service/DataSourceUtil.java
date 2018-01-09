@@ -1,4 +1,4 @@
-package com.share.common;
+package com.share.service;
 
 import com.share.service.cassandra.CassandraFactory;
 import com.share.service.elasticsearch.http.ElasticsearchHttpFactory;
@@ -23,10 +23,10 @@ public class DataSourceUtil {
 	 */
 	public static CassandraFactory cassandra(){
 		try {
-			String servers = SystemConfig.getProperty("cassandra.servers");
-			String keyspace = SystemConfig.getProperty("cassandra.keyspace");
-			String username = SystemConfig.getProperty("cassandra.username");
-			String password = SystemConfig.getProperty("cassandra.password");
+			String servers = CanalConfig.getProperty("cassandra.servers");
+			String keyspace = CanalConfig.getProperty("cassandra.keyspace");
+			String username = CanalConfig.getProperty("cassandra.username");
+			String password = CanalConfig.getProperty("cassandra.password");
 			CassandraFactory factory = new CassandraFactory();
 			factory.init(servers, keyspace, username, password);
 			return factory;
@@ -44,11 +44,11 @@ public class DataSourceUtil {
 	 */
 	public static MongoDBFactory mongodb(){
 		try {
-			String servers = SystemConfig.getProperty("mongodb.servers");
-			String database = SystemConfig.getProperty("mongodb.database");
-			String schema = SystemConfig.getProperty("mongodb.schema");
-			String username = SystemConfig.getProperty("mongodb.username");
-			String password = SystemConfig.getProperty("mongodb.password");
+			String servers = CanalConfig.getProperty("mongodb.servers");
+			String database = CanalConfig.getProperty("mongodb.database");
+			String schema = CanalConfig.getProperty("mongodb.schema");
+			String username = CanalConfig.getProperty("mongodb.username");
+			String password = CanalConfig.getProperty("mongodb.password");
 			MongoDBFactory factory = new MongoDBFactory();
 			factory.init(servers, database, schema, username, password);
 			return factory;
@@ -66,10 +66,10 @@ public class DataSourceUtil {
 	 */
 	public static ElasticsearchHttpFactory httpElasticsearch(){
 		try {
-			String clusterName = SystemConfig.getProperty("elasticsearch.cluster.name");
-			String servers = SystemConfig.getProperty("elasticsearch.cluster.servers");
-			String username = SystemConfig.getProperty("elasticsearch.cluster.username");
-			String password = SystemConfig.getProperty("elasticsearch.cluster.password");
+			String clusterName = CanalConfig.getProperty("elasticsearch.cluster.name");
+			String servers = CanalConfig.getProperty("elasticsearch.cluster.servers");
+			String username = CanalConfig.getProperty("elasticsearch.cluster.username");
+			String password = CanalConfig.getProperty("elasticsearch.cluster.password");
 			ElasticsearchHttpFactory factory = new ElasticsearchHttpFactory(clusterName,servers, username, password);
 			factory.init();
 			return factory;
@@ -87,10 +87,10 @@ public class DataSourceUtil {
 	 */
 	public static ElasticsearchTransportFactory elasticsearch(){
 		try {
-			String clusterName = SystemConfig.getProperty("elasticsearch.cluster.name");
-			String servers = SystemConfig.getProperty("elasticsearch.cluster.servers");
-			String username = SystemConfig.getProperty("elasticsearch.cluster.username");
-			String password = SystemConfig.getProperty("elasticsearch.cluster.password");
+			String clusterName = CanalConfig.getProperty("elasticsearch.cluster.name");
+			String servers = CanalConfig.getProperty("elasticsearch.cluster.servers");
+			String username = CanalConfig.getProperty("elasticsearch.cluster.username");
+			String password = CanalConfig.getProperty("elasticsearch.cluster.password");
 			ElasticsearchTransportFactory factory = new ElasticsearchTransportFactory(clusterName, servers, username, password);
 			factory.init();
 			return factory;
@@ -108,14 +108,14 @@ public class DataSourceUtil {
 	 */
 	public static GreenplumFactory greenplum(){
 		try {
-			String address = SystemConfig.getProperty("greenplum.address");
-			String database = SystemConfig.getProperty("greenplum.database");
-			String schema = SystemConfig.getProperty("greenplum.schema");
-			String username = SystemConfig.getProperty("greenplum.username");
-			String password = SystemConfig.getProperty("greenplum.password");
-			boolean isDruid = Boolean.valueOf(SystemConfig.getProperty("jdbc.druid.enabled"));
-			Integer max_pool_size = Integer.valueOf(SystemConfig.getProperty("jdbc.druid.max_pool_size"));
-			Integer init_pool_size = Integer.valueOf(SystemConfig.getProperty("jdbc.druid.init_pool_size"));
+			String address = CanalConfig.getProperty("greenplum.address");
+			String database = CanalConfig.getProperty("greenplum.database");
+			String schema = CanalConfig.getProperty("greenplum.schema");
+			String username = CanalConfig.getProperty("greenplum.username");
+			String password = CanalConfig.getProperty("greenplum.password");
+			boolean isDruid = Boolean.valueOf(CanalConfig.getProperty("jdbc.druid.enabled"));
+			Integer max_pool_size = Integer.valueOf(CanalConfig.getProperty("jdbc.druid.max_pool_size"));
+			Integer init_pool_size = Integer.valueOf(CanalConfig.getProperty("jdbc.druid.init_pool_size"));
 			GreenplumFactory factory = new GreenplumFactory();
 			factory.init(address, database, schema, username, password, isDruid, max_pool_size, init_pool_size);
 			return factory;
@@ -133,13 +133,13 @@ public class DataSourceUtil {
 	 */
 	public static JDBCFactory jdbc(){
 		try {
-			String driverName = SystemConfig.getProperty("jdbc.driver");
-			String url = SystemConfig.getProperty("jdbc.url");
-			String username = SystemConfig.getProperty("jdbc.username");
-			String password = SystemConfig.getProperty("jdbc.password");
-			boolean isDruid = Boolean.valueOf(SystemConfig.getProperty("jdbc.druid.enabled"));
-			Integer max_pool_size = Integer.valueOf(SystemConfig.getProperty("jdbc.druid.max_pool_size"));
-			Integer init_pool_size = Integer.valueOf(SystemConfig.getProperty("jdbc.druid.init_pool_size"));
+			String driverName = CanalConfig.getProperty("jdbc.driver");
+			String url = CanalConfig.getProperty("jdbc.url");
+			String username = CanalConfig.getProperty("jdbc.username");
+			String password = CanalConfig.getProperty("jdbc.password");
+			boolean isDruid = Boolean.valueOf(CanalConfig.getProperty("jdbc.druid.enabled"));
+			Integer max_pool_size = Integer.valueOf(CanalConfig.getProperty("jdbc.druid.max_pool_size"));
+			Integer init_pool_size = Integer.valueOf(CanalConfig.getProperty("jdbc.druid.init_pool_size"));
 			JDBCFactory factory = new JDBCFactory();
 			factory.init(driverName, url, username, password, isDruid, max_pool_size, init_pool_size);
 			return factory;
@@ -157,10 +157,10 @@ public class DataSourceUtil {
 	 */
 	public static KafkaFactory kafka(){
 		try {
-			String servers = SystemConfig.getProperty("kafka.servers");// 127.0.0.1:9092
-			boolean isZookeeper = Boolean.valueOf(SystemConfig.getProperty("kafka.zookeeper.enabled"));
-			String zookeeper_servers = SystemConfig.getProperty("kafka.zookeeper.servers");// 127.0.0.1:9092
-			String acks = SystemConfig.getProperty("kafka.productor.acks");
+			String servers = CanalConfig.getProperty("kafka.servers");// 127.0.0.1:9092
+			boolean isZookeeper = Boolean.valueOf(CanalConfig.getProperty("kafka.zookeeper.enabled"));
+			String zookeeper_servers = CanalConfig.getProperty("kafka.zookeeper.servers");// 127.0.0.1:9092
+			String acks = CanalConfig.getProperty("kafka.productor.acks");
 			KafkaFactory factory = new KafkaFactory();
 			factory.init(servers, isZookeeper, zookeeper_servers, acks);
 			return factory;

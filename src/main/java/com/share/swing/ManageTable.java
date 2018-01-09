@@ -35,11 +35,11 @@ import javax.swing.table.TableColumn;
 import org.apache.commons.lang.StringUtils;
 
 import com.alibaba.fastjson.JSONObject;
-import com.share.common.cassandra.CassandraFactory;
-import com.share.common.elasticsearch.transport.ElasticsearchTransportFactory;
-import com.share.common.greenplum.GreenplumFactory;
-import com.share.common.jdbc.JDBCFactory;
-import com.share.common.mongodb.MongoDBFactory;
+import com.share.service.cassandra.CassandraFactory;
+import com.share.service.elasticsearch.transport.ElasticsearchTransportFactory;
+import com.share.service.greenplum.GreenplumFactory;
+import com.share.service.jdbc.JDBCFactory;
+import com.share.service.mongodb.MongoDBFactory;
 import com.share.swing.DataInfo.Config;
 import com.share.util.DateUtil;
 import com.share.util.StringUtil;
