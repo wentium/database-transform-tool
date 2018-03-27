@@ -11,24 +11,26 @@
 		<version>9</version>
 	</parent>
 	<properties>
+		<java.version>1.8</java.version>
+		<project.build.encoding>UTF-8</project.build.encoding>
 		<log4j2.version>2.9.0</log4j2.version>
 		<httpclient.version>4.5.3</httpclient.version>
-		<guava.version>22.0</guava.version>
-		<druid.version>1.1.5</druid.version>
-		<canal.version>1.0.24</canal.version>
-		<fastjson.version>1.2.40</fastjson.version>
-		<h2.version>1.4.196</h2.version>
+		<guava.version>23.0</guava.version>
+		<druid.version>1.1.9</druid.version>
+		<canal.version>1.0.25</canal.version>
+		<fastjson.version>1.2.47</fastjson.version>
+		<h2.version>1.4.197</h2.version>
 		<hsqldb.version>2.4.0</hsqldb.version>
-		<mysql.version>5.1.44</mysql.version>
-		<postgresql.version>42.1.4</postgresql.version>
+		<mysql.version>5.1.46</mysql.version>
+		<postgresql.version>42.2.2</postgresql.version>
 		<sqlserver.version>4.0</sqlserver.version>
 		<oracle.version>12.1.0.2</oracle.version>
-		<elasticsearch.version>5.6.0</elasticsearch.version>
-		<cassandra.version>3.3.1</cassandra.version>
-		<mongodb.version>3.5.0</mongodb.version>
-		<kafka.version>0.10.2.1</kafka.version>
-		<project.build.source_target.version>1.8</project.build.source_target.version>
-		<project.build.source_target.encoding>UTF-8</project.build.source_target.encoding>
+		<elasticsearch.version>5.6.8</elasticsearch.version>
+		<spring-data-elasticsearch.version>3.0.5.RELEASE</spring-data-elasticsearch.version>
+		<cassandra.version>3.4.0</cassandra.version>
+		<mongodb.version>3.6.3</mongodb.version>
+		<kafka.version>1.0.1</kafka.version>
+		<!-- <kafka.version>0.11.0.2</kafka.version> -->
 	</properties>
 	<licenses>
 		<license>
@@ -38,14 +40,14 @@
 	</licenses>
 	<scm>
 		<url>https://github.com/dev-share/css-canal</url>
-		<connection>git@github.com:dev-share/css-canal.git</connection>
-		<developerConnection>https://github.com/dev-share/css-canal</developerConnection>
+		<connection>git@github.com:dev-share/database-transform-tool.git</connection>
+		<developerConnection>https://github.com/dev-share/database-transform-tool</developerConnection>
 	</scm>
 	<developers>
 		<developer>
 			<name>ukelink</name>
 			<email>yi.zhang@ucloudlink.com</email>
-			<url>https://github.com/dev-share/css-canal</url>
+			<url>https://github.com/dev-share/database-transform-tool</url>
 		</developer>
 	</developers>
 	<dependencies>
@@ -147,15 +149,15 @@
 			<version>${elasticsearch.version}</version>
 		</dependency>
 		<dependency>
-			<groupId>org.springframework.data</groupId>
-			<artifactId>spring-data-elasticsearch</artifactId>
-			<version>3.0.0.RC3</version>
+		    <groupId>org.springframework.data</groupId>
+		    <artifactId>spring-data-elasticsearch</artifactId>
+		    <version>${spring-data-elasticsearch.version}</version>
 		</dependency>
 		
 		<!-- <dependency>
 		    <groupId>org.apache.cassandra</groupId>
 		    <artifactId>cassandra-all</artifactId>
-		    <version>3.10</version>
+		    <version>3.11.2</version>
 		</dependency> -->
 		<dependency>
 		    <groupId>com.datastax.cassandra</groupId>
@@ -219,13 +221,37 @@
 					</plugin>
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
-						<artifactId>maven-gpg-plugin</artifactId>
-						<version>1.6</version>
+						<artifactId>maven-dependency-plugin</artifactId>
+						<version>3.0.1</version>
 						<executions>
 							<execution>
-								<phase>verify</phase>
+								<id>copy-dependencies</id>
+								<phase>package</phase>
 								<goals>
-									<goal>sign</goal>
+									<goal>copy-dependencies</goal>
+								</goals>
+								<configuration>
+									<outputDirectory>${project.build.directory}/lib</outputDirectory>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-assembly-plugin</artifactId>
+						<version>3.1.0</version>
+						<configuration>
+							<appendAssemblyId>false</appendAssemblyId>
+							<descriptors>
+								<descriptor>assembly.xml</descriptor>
+							</descriptors>
+						</configuration>
+						<executions>
+							<execution>
+								<id>make-assembly</id>
+								<phase>package</phase>
+								<goals>
+									<goal>single</goal>
 								</goals>
 							</execution>
 						</executions>
