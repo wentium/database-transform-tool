@@ -31,3 +31,6 @@
 * 14）Greenplum-->Greenplum
 * 15）Greenplum-->MongoDB
 * 16）[MySQL|SQL　Server|Oracle]-->Greenplum
+### 4. 图形界面
+![服务支持](_img/dst1.png)
+![服务配置](_img/dst2.png)
