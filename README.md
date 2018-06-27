@@ -9,7 +9,7 @@
 提供Canal可支持【MySQL|MariaDB】数据库监控以及数据备份。
 ### 1. Canal监控【MySQL|MariaDB】
 ### 2. 数据资源类型
-* 1）Elasticsearch服务
+* 1）Elasticsearch服务(Transport/Rest/HighLevelRest)
 * 2）NoSQL服务[Cassandra|MongoDB|Redis|Memecached]
 * 3）SQL服务[MySQL|SQL　Server|Oracle]
 * 4）数据仓库(GreenPlum|PostgreSQL)
